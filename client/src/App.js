@@ -1,12 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import './App.css';
+import React, { useState, useMemo } from "react";
+import "./App.css";
 
 function App() {
-  const [urls, setUrls] = useState(['']);
+  const [urls, setUrls] = useState([""]);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [order, setOrder] = useState('asc');
-  const [orderBy, setOrderBy] = useState('metric');
+  const [order, setOrder] = useState("asc");
+  const [orderBy, setOrderBy] = useState("metric");
   const [threshold, setThreshold] = useState(0);
   const [selectedMetrics, setSelectedMetrics] = useState([]);
   const [selectedUrls, setSelectedUrls] = useState([]);
@@ -18,7 +18,7 @@ function App() {
   };
 
   const addUrlField = () => {
-    setUrls([...urls, '']);
+    setUrls([...urls, ""]);
   };
 
   const removeUrlField = (index) => {
@@ -30,23 +30,22 @@ function App() {
   const handleSearch = async () => {
     setLoading(true);
     try {
-      const validUrls = urls.filter(url => url.trim() !== '');
+      const validUrls = urls.filter((url) => url.trim() !== "");
       const results = await Promise.all(
-        validUrls.map(url =>
+        validUrls.map((url) =>
           fetch(`${process.env.REACT_APP_API_BASE_URL}/api/crux`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({ url }),
           })
-
-            .then(res => res.json())
-            .then(data => ({ url, data }))
+            .then((res) => res.json())
+            .then((data) => ({ url, data }))
         )
       );
       setData(results);
-      setSelectedUrls(results.map(item => item.url));
+      setSelectedUrls(results.map((item) => item.url));
     } catch (error) {
       console.error(error);
     } finally {
@@ -55,8 +54,8 @@ function App() {
   };
 
   const handleRequestSort = (property) => {
-    const isAsc = orderBy === property && order === 'asc';
-    setOrder(isAsc ? 'desc' : 'asc');
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
   };
 
@@ -82,27 +81,39 @@ function App() {
     setSelectedUrls(value);
   };
 
+  // Collect all unique metrics from API response
   const allMetrics = useMemo(() => {
     const metrics = new Set();
-    data.forEach(item => {
-      if (item.data && item.data.metrics) {
-        Object.keys(item.data.metrics).forEach(metric => metrics.add(metric));
+    data.forEach((item) => {
+      if (item.data && item.data.record && item.data.record.metrics) {
+        Object.keys(item.data.record.metrics).forEach((metric) =>
+          metrics.add(metric)
+        );
       }
     });
     return Array.from(metrics);
   }, [data]);
 
+  // Summary stats: average, min, max, count for selected URLs and metrics
   const summaryData = useMemo(() => {
     if (!data.length) return null;
 
     const summary = {};
 
-    allMetrics.forEach(metric => {
+    allMetrics.forEach((metric) => {
       const values = data
-        .filter(item => selectedUrls.length === 0 || selectedUrls.includes(item.url))
-        .map(item => item.data?.metrics?.[metric]?.percentiles?.p75)
-        .filter(val => val !== undefined);
-
+        .filter(
+          (item) => selectedUrls.length === 0 || selectedUrls.includes(item.url)
+        )
+        .map((item) => {
+          const val = item.data?.record?.metrics?.[metric]?.percentiles?.p75;
+          return val !== undefined ? parseFloat(val) : undefined;
+        })
+        .filter((val) => val !== undefined && !isNaN(val) && val >= threshold);
+      console.log(values, "values for metric:", metric);
+      console.log(allMetrics, "allMetrics");
+      console.log(data, "data");
+      console.log(selectedUrls, "selectedUrls");
       if (values.length > 0) {
         const sum = values.reduce((a, b) => a + b, 0);
         const avg = sum / values.length;
@@ -110,197 +121,216 @@ function App() {
         const max = Math.max(...values);
 
         summary[metric] = {
-          average: avg * 100,
-          min: min * 100,
-          max: max * 100,
-          count: values.length
+          average: avg,
+          min,
+          max,
+          count: values.length,
         };
       }
     });
 
     return summary;
-  }, [data, allMetrics, selectedUrls]);
+  }, [data, allMetrics, selectedUrls, threshold]);
 
+  // Filter and sort data rows for table
   const filteredData = useMemo(() => {
     if (!data.length) return [];
 
-    let result = [];
+    let rows = [];
 
-    data.forEach(item => {
+    data.forEach((item) => {
       if (selectedUrls.length > 0 && !selectedUrls.includes(item.url)) return;
 
-      if (item.data && item.data.metrics) {
-        Object.entries(item.data.metrics).forEach(([metric, values]) => {
-          if (selectedMetrics.length > 0 && !selectedMetrics.includes(metric)) return;
-          if (values.percentiles.p75 * 100 < threshold) return;
+      if (item.data && item.data.record && item.data.record.metrics) {
+        Object.entries(item.data.record.metrics).forEach(([metric, values]) => {
+          if (selectedMetrics.length > 0 && !selectedMetrics.includes(metric))
+            return;
 
-          result.push({
-            url: item.url,
-            metric,
-            ...values
-          });
+          let val = values.percentiles?.p75;
+
+          if (val !== undefined) {
+            val = parseFloat(val);
+            if (isNaN(val) || val < threshold) return;
+
+            rows.push({
+              url: item.url,
+              metric,
+              value: val,
+            });
+          }
         });
       }
     });
 
-    // Apply sorting
-    return result.sort((a, b) => {
-      const aValue = orderBy === 'metric' ? a.metric :
-        orderBy === 'url' ? a.url :
-          a.percentiles.p75;
-      const bValue = orderBy === 'metric' ? b.metric :
-        orderBy === 'url' ? b.url :
-          b.percentiles.p75;
+    // Sort rows
+    rows.sort((a, b) => {
+      let cmp = 0;
+      if (orderBy === "metric") {
+        cmp = a.metric.localeCompare(b.metric);
+      } else if (orderBy === "value") {
+        cmp = a.value - b.value;
+      } else if (orderBy === "url") {
+        cmp = a.url.localeCompare(b.url);
+      }
 
-      if (aValue < bValue) return order === 'asc' ? -1 : 1;
-      if (aValue > bValue) return order === 'asc' ? 1 : -1;
-      return 0;
+      return order === "asc" ? cmp : -cmp;
     });
-  }, [data, order, orderBy, threshold, selectedMetrics, selectedUrls]);
+
+    return rows;
+  }, [data, selectedMetrics, selectedUrls, order, orderBy, threshold]);
 
   return (
-    <div className="app-container">
-      <h1 className="app-title">CrUX Data Dashboard</h1>
+    <div className="App">
+      <h1>CrUX Dashboard</h1>
 
-      <div className="url-input-container">
+      <div>
+        <h2>Input URLs</h2>
         {urls.map((url, index) => (
-          <div className="url-input-group" key={index}>
+          <div key={index} style={{ marginBottom: 8 }}>
             <input
               type="text"
-              placeholder={`URL ${index + 1}`}
-              className="url-input"
               value={url}
               onChange={(e) => handleUrlChange(index, e.target.value)}
+              placeholder="Enter URL"
+              style={{ width: "300px" }}
             />
-            {index === urls.length - 1 ? (
-              <button className="add-url-btn" onClick={addUrlField}>+</button>
-            ) : (
-              <button className="remove-url-btn" onClick={() => removeUrlField(index)}>-</button>
-            )}
+            <button
+              onClick={() => removeUrlField(index)}
+              disabled={urls.length <= 1}
+            >
+              Remove
+            </button>
           </div>
         ))}
+        <button onClick={addUrlField}>Add URL</button>
       </div>
 
-      <button
-        className="search-btn"
-        onClick={handleSearch}
-        disabled={loading || urls.every(url => !url.trim())}
-      >
-        {loading ? 'Loading...' : 'Search'}
-      </button>
+      <div style={{ marginTop: 20 }}>
+        <button onClick={handleSearch} disabled={loading}>
+          {loading ? "Loading..." : "Search"}
+        </button>
+      </div>
 
       {data.length > 0 && (
         <>
-          <div className="filter-container">
-            <div className="filter-group">
-              <label>Metrics:</label>
-              <select
-                multiple
-                value={selectedMetrics}
-                onChange={handleMetricFilterChange}
-                className="multi-select"
-              >
-                {allMetrics.map((metric) => (
-                  <option key={metric} value={metric}>{metric}</option>
-                ))}
-              </select>
-            </div>
+          <div style={{ marginTop: 20 }}>
+            <h2>Filters</h2>
 
-            <div className="filter-group">
-              <label>URLs:</label>
-              <select
-                multiple
-                value={selectedUrls}
-                onChange={handleUrlFilterChange}
-                className="multi-select"
-              >
-                {data.map((item) => (
-                  <option key={item.url} value={item.url}>{item.url}</option>
-                ))}
-              </select>
-            </div>
+            <div className="filters-container">
+              <label>
+                Filter Metrics:
+                <select
+                  multiple
+                  value={selectedMetrics}
+                  onChange={handleMetricFilterChange}
+                >
+                  {allMetrics.map((metric) => (
+                    <option key={metric} value={metric}>
+                      {metric}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <div className="filter-group">
-              <label>Min Good %:</label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={threshold}
-                onChange={(e) => setThreshold(Number(e.target.value))}
-                className="threshold-input"
-              />
+              <label>
+                Filter URLs:
+                <select
+                  multiple
+                  value={selectedUrls}
+                  onChange={handleUrlFilterChange}
+                >
+                  {data.map((item) => (
+                    <option key={item.url} value={item.url}>
+                      {item.url}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Threshold (min percentile value):
+                <input
+                  type="number"
+                  value={threshold}
+                  onChange={(e) =>
+                    setThreshold(parseFloat(e.target.value) || 0)
+                  }
+                />
+              </label>
             </div>
           </div>
 
-          {summaryData && (
-            <div className="summary-card">
-              <h2>Summary Statistics</h2>
-              <table className="summary-table">
+          <div style={{ marginTop: 20 }}>
+            <h2>Summary</h2>
+            {summaryData ? (
+              <table border="1" cellPadding="6" style={{ margin: "auto" }}>
                 <thead>
                   <tr>
                     <th>Metric</th>
-                    <th>Avg. Good %</th>
-                    <th>Min Good %</th>
-                    <th>Max Good %</th>
-                    <th>URL Count</th>
+                    <th>Average</th>
+                    <th>Min</th>
+                    <th>Max</th>
+                    <th>Count</th>
                   </tr>
                 </thead>
                 <tbody>
                   {Object.entries(summaryData).map(([metric, stats]) => (
                     <tr key={metric}>
                       <td>{metric}</td>
-                      <td>{stats.average.toFixed(2)}%</td>
-                      <td>{stats.min.toFixed(2)}%</td>
-                      <td>{stats.max.toFixed(2)}%</td>
+                      <td>{stats.average.toFixed(2)}</td>
+                      <td>{stats.min.toFixed(2)}</td>
+                      <td>{stats.max.toFixed(2)}</td>
                       <td>{stats.count}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-          )}
+            ) : (
+              <p>No summary data</p>
+            )}
+          </div>
 
-          <div className="data-table-container">
-            <table className="data-table">
+          <div style={{ marginTop: 20 }}>
+            <h2>Details</h2>
+            <table border="1" cellPadding="6" style={{ margin: "auto" }}>
               <thead>
                 <tr>
                   <th
-                    className={`sortable ${orderBy === 'url' ? 'active' : ''}`}
-                    onClick={() => handleRequestSort('url')}
+                    onClick={() => handleRequestSort("url")}
+                    style={{ cursor: "pointer" }}
                   >
-                    URL {orderBy === 'url' && (order === 'asc' ? '↑' : '↓')}
+                    URL {orderBy === "url" ? (order === "asc" ? "↑" : "↓") : ""}
                   </th>
                   <th
-                    className={`sortable ${orderBy === 'metric' ? 'active' : ''}`}
-                    onClick={() => handleRequestSort('metric')}
+                    onClick={() => handleRequestSort("metric")}
+                    style={{ cursor: "pointer" }}
                   >
-                    Metric {orderBy === 'metric' && (order === 'asc' ? '↑' : '↓')}
+                    Metric{" "}
+                    {orderBy === "metric" ? (order === "asc" ? "↑" : "↓") : ""}
                   </th>
-                  <th>Good (ms)</th>
-                  <th>Needs Improvement (ms)</th>
-                  <th>Poor (ms)</th>
                   <th
-                    className={`sortable ${orderBy === 'p75' ? 'active' : ''}`}
-                    onClick={() => handleRequestSort('p75')}
+                    onClick={() => handleRequestSort("value")}
+                    style={{ cursor: "pointer" }}
                   >
-                    Percentage Good {orderBy === 'p75' && (order === 'asc' ? '↑' : '↓')}
+                    Value (p75){" "}
+                    {orderBy === "value" ? (order === "asc" ? "↑" : "↓") : ""}
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {filteredData.map((row, index) => (
-                  <tr key={index}>
-                    <td className="url-cell">{row.url}</td>
-                    <td>{row.metric}</td>
-                    <td>{row.histogram[0].start}</td>
-                    <td>{row.histogram[1].start}</td>
-                    <td>{row.histogram[2].start}</td>
-                    <td className="percentage-cell">
-                      {(row.percentiles.p75 * 100).toFixed(2)}%
-                    </td>
+                {filteredData.length > 0 ? (
+                  filteredData.map((row, idx) => (
+                    <tr key={`${row.url}-${row.metric}-${idx}`}>
+                      <td>{row.url}</td>
+                      <td>{row.metric}</td>
+                      <td>{row.value.toFixed(2)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="3">No data to display</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

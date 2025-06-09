@@ -15,3 +15,4 @@ Open terminal
 `cd server`
 `npm install`
 `npm run dev`
+Backend server: https://dashboard.render.com/web/srv-d13e54p5pdvs73dlsrog/deploys/dep-d13j4d8dl3ps738u1obg

@@ -261,36 +261,6 @@ function App() {
           </div>
 
           <div style={{ marginTop: 20 }}>
-            <h2>Summary</h2>
-            {summaryData ? (
-              <table border="1" cellPadding="6" style={{ margin: "auto" }}>
-                <thead>
-                  <tr>
-                    <th>Metric</th>
-                    <th>Average</th>
-                    <th>Min</th>
-                    <th>Max</th>
-                    <th>Count</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(summaryData).map(([metric, stats]) => (
-                    <tr key={metric}>
-                      <td>{metric}</td>
-                      <td>{stats.average.toFixed(2)}</td>
-                      <td>{stats.min.toFixed(2)}</td>
-                      <td>{stats.max.toFixed(2)}</td>
-                      <td>{stats.count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p>No summary data</p>
-            )}
-          </div>
-
-          <div style={{ marginTop: 20 }}>
             <h2>Details</h2>
             <table border="1" cellPadding="6" style={{ margin: "auto" }}>
               <thead>
@@ -333,6 +303,36 @@ function App() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div style={{ marginTop: 20 }}>
+            <h2>Summary</h2>
+            {summaryData ? (
+              <table border="1" cellPadding="6" style={{ margin: "auto" }}>
+                <thead>
+                  <tr>
+                    <th>Metric</th>
+                    <th>Average</th>
+                    <th>Min</th>
+                    <th>Max</th>
+                    <th>Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(summaryData).map(([metric, stats]) => (
+                    <tr key={metric}>
+                      <td>{metric}</td>
+                      <td>{stats.average.toFixed(2)}</td>
+                      <td>{stats.min.toFixed(2)}</td>
+                      <td>{stats.max.toFixed(2)}</td>
+                      <td>{stats.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p>No summary data</p>
+            )}
           </div>
         </>
       )}

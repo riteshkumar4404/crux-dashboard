@@ -1,0 +1,237 @@
+/* Base Styles */
+:root {
+  --primary-color: #4285f4;
+  --secondary-color: #34a853;
+  --error-color: #ea4335;
+  --background-color: #f8f9fa;
+  --card-color: #ffffff;
+  --text-color: #202124;
+  --border-color: #dadce0;
+  --hover-color: #f1f3f4;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: var(--text-color);
+  background-color: var(--background-color);
+}
+
+/* App Container */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.app-title {
+  text-align: center;
+  margin-bottom: 30px;
+  color: var(--primary-color);
+}
+
+/* URL Input Section */
+.url-input-container {
+  margin-bottom: 20px;
+}
+
+.url-input-group {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.url-input {
+  flex: 1;
+  padding: 10px 15px;
+  font-size: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px 0 0 4px;
+  transition: border-color 0.3s;
+}
+
+.url-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.add-url-btn, .remove-url-btn {
+  padding: 0 15px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.add-url-btn:hover {
+  background-color: #3367d6;
+}
+
+.remove-url-btn {
+  background-color: var(--error-color);
+}
+
+.remove-url-btn:hover {
+  background-color: #d33426;
+}
+
+.search-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 30px;
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.search-btn:hover:not(:disabled) {
+  background-color: #2d9249;
+}
+
+.search-btn:disabled {
+  background-color: #a0a0a0;
+  cursor: not-allowed;
+}
+
+/* Filter Section */
+.filter-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.multi-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: white;
+  min-height: 100px;
+}
+
+.threshold-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+/* Summary Card */
+.summary-card {
+  background-color: var(--card-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.summary-card h2 {
+  margin-bottom: 20px;
+  color: var(--primary-color);
+}
+
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.summary-table th, .summary-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.summary-table th {
+  background-color: var(--hover-color);
+  font-weight: 600;
+}
+
+.summary-table tr:hover {
+  background-color: var(--hover-color);
+}
+
+/* Data Table */
+.data-table-container {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--card-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.data-table th, .data-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.data-table th {
+  background-color: var(--hover-color);
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.data-table th.sortable:hover {
+  background-color: #e6e6e6;
+}
+
+.data-table th.active {
+  color: var(--primary-color);
+}
+
+.data-table tr:hover {
+  background-color: var(--hover-color);
+}
+
+.url-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.percentage-cell {
+  font-weight: 600;
+  color: var(--secondary-color);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .filter-container {
+    flex-direction: column;
+  }
+  
+  .data-table th, .data-table td {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+}
